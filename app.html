@@ -61,9 +61,14 @@
         def onMessage(message):
             chatHistory <= message
 
+        def chatEnter(ev):
+            if ev.keyCode == 13: sendMessage(ev)
+
+        myChat.bind('keypress', chatEnter)
+
         def sendMessage(ev):
             if myChat.value:
-                message = myChat.value + f"\n"
+                message = myChat.value
                 myChat.value = ''
                 ws.send(message)
         
