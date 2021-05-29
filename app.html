@@ -1,0 +1,125 @@
+<HTML>
+
+<HEAD>
+    <TITLE>PyChat WebApp</TITLE>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.9.2/brython.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.9.2/brython_stdlib.min.js" defer
+        onload="brython ();"></script>
+
+
+    <SCRIPT type="text/python">
+        """Main WebApp code"""
+
+        from browser import document, bind, websocket
+        from browser.local_storage import storage
+
+        
+        darkModeStyle = {"backgroundColor": "#000000", "color": "#FFFFFF"}
+        lightModeStyle = {"backgroundColor": "#FFFFFF", "color": "#000000"}
+
+        chatHistory = document.select('#chatHistory')[0]
+        bodyObj = document.select('#bodyObj')[0]
+        myChat = document.select('#myChat')[0]
+        sendChat = document.select('#sendChat')[0]
+        darkModeToggle = document.select('#darkModeToggle')[0]
+        username = document.select('#username')[0]
+        saveUsername = document.select('#saveUsername')[0]
+        
+        try:
+            if storage['darkMode'] == 'True':
+                darkModeToggle.enabled = True
+                bodyObj.style = darkModeStyle
+            else:
+                darkModeToggle.enabled = False
+                bodyObj.style = lightModeStyle
+        except KeyError:
+            darkModeToggle.enabled = False
+            bodyObj.style = lightModeStyle
+
+        try:
+            username.value = storage['username']
+        except KeyError:
+            username.value = 'Anon'
+            storage['username'] = 'Anon'
+
+        
+        def toggleDarkMode(ev):
+            if darkModeToggle.enabled:
+                print("Disabling Dark Mode")
+                darkModeToggle.enabled = False
+                storage['darkMode'] = 'False'
+                bodyObj.style = lightModeStyle
+            else:
+                print("Enabling Dark Mode")
+                darkModeToggle.enabled = True
+                storage['darkMode'] = 'True'
+                bodyObj.style = darkModeStyle
+        
+        darkModeToggle.bind("click", toggleDarkMode)
+        
+        def onMessage(message):
+            chatHistory <= message
+
+        def sendMessage(ev):
+            if myChat.value:
+                message = myChat.value + f"\n"
+                myChat.value = ''
+                ws.send(message)
+        
+        def saveUsernameToCache(ev):
+            storage['username'] = username.value
+            document.select('#usernameDiv')[0].style = {"visibility": "hidden"}
+        
+        saveUsername.bind("click", saveUsernameToCache)
+
+        sendChat.bind("click", sendMessage)
+
+        def on_open(evt):
+            onMessage(f"\n" + "Made connection to websocket" + f"\n")
+            ws.send(username.value)
+
+        def on_message(evt):
+            # message received from server
+            onMessage(f"{evt.data}")
+
+        def on_close(evt):
+            onMessage("Lost connection to websocket" + f"\n")
+
+        ws = None
+
+        
+    
+        if not websocket.supported:
+            print("WebSocket is not supported by your browser")
+        else:
+            global ws
+            # open a web socket
+            ws = websocket.WebSocket("ws://localhost:12345")
+            # bind functions to web socket events
+            ws.bind('open',on_open)
+            ws.bind('message',on_message)
+            ws.bind('close',on_close)
+            
+        
+        
+
+    </SCRIPT>
+
+
+</HEAD>
+
+<BODY id="bodyObj">
+    <button id="darkModeToggle">Dark Mode</button><br><br>
+    <div id="usernameDiv">
+        <label for="username">Username: </label><input type="text" id="username" name="username"><button
+            id="saveUsername">Save</button>
+    </div>
+    <div id="chatHistory" style="white-space: pre-wrap;">
+
+    </div>
+    <input type="text" id="myChat" name="myChat"><button id="sendChat">Send</button>
+
+</BODY>
+
+</HTML>
